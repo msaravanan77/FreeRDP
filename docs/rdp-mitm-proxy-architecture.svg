@@ -1,0 +1,390 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 2400" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563EB"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#2563EB"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#059669"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#D97706"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#DC2626"/>
+    </marker>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8FAFC"/>
+      <stop offset="100%" style="stop-color:#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#DBEAFE"/>
+      <stop offset="100%" style="stop-color:#93C5FD"/>
+    </linearGradient>
+    <linearGradient id="proxyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF3C7"/>
+      <stop offset="100%" style="stop-color:#FCD34D"/>
+    </linearGradient>
+    <linearGradient id="serverGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D1FAE5"/>
+      <stop offset="100%" style="stop-color:#6EE7B7"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="104%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#00000022"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="2400" fill="url(#bgGrad)" rx="12"/>
+
+  <!-- Title -->
+  <text x="700" y="50" text-anchor="middle" font-size="28" font-weight="bold" fill="#1E293B">FreeRDP MITM Proxy Architecture</text>
+  <text x="700" y="78" text-anchor="middle" font-size="14" fill="#64748B">Transparent RDP Proxy: MSTSC Client (:23389) → Proxy → Target Server (:3389)</text>
+
+  <!-- ======= SECTION 1: HIGH-LEVEL NETWORK OVERVIEW ======= -->
+  <rect x="30" y="100" width="1340" height="320" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="700" y="130" text-anchor="middle" font-size="20" font-weight="bold" fill="#334155">1. High-Level Network Topology</text>
+
+  <!-- MSTSC Client Box -->
+  <rect x="70" y="160" width="280" height="220" rx="10" fill="url(#clientGrad)" stroke="#3B82F6" stroke-width="2"/>
+  <text x="210" y="190" text-anchor="middle" font-size="16" font-weight="bold" fill="#1E40AF">MSTSC / RDP Client</text>
+  <text x="210" y="215" text-anchor="middle" font-size="12" fill="#1E3A5F">Windows Remote Desktop</text>
+  <line x1="100" y1="230" x2="320" y2="230" stroke="#3B82F6" stroke-width="0.5"/>
+  <text x="210" y="252" text-anchor="middle" font-size="11" fill="#1E3A5F">Connects to proxy:23389</text>
+  <text x="210" y="272" text-anchor="middle" font-size="11" fill="#1E3A5F">Sends credentials via NLA/CredSSP</text>
+  <text x="210" y="292" text-anchor="middle" font-size="11" fill="#1E3A5F">Sends keyboard/mouse input</text>
+  <text x="210" y="312" text-anchor="middle" font-size="11" fill="#1E3A5F">Receives graphics/display output</text>
+  <text x="210" y="332" text-anchor="middle" font-size="11" fill="#1E3A5F">Uses virtual channels</text>
+  <rect x="150" y="350" width="120" height="22" rx="4" fill="#3B82F6"/>
+  <text x="210" y="365" text-anchor="middle" font-size="11" fill="white">Port: ANY → 23389</text>
+
+  <!-- MITM Proxy Box -->
+  <rect x="500" y="160" width="400" height="220" rx="10" fill="url(#proxyGrad)" stroke="#D97706" stroke-width="2"/>
+  <text x="700" y="190" text-anchor="middle" font-size="16" font-weight="bold" fill="#92400E">FreeRDP MITM Proxy</text>
+  <text x="700" y="215" text-anchor="middle" font-size="12" fill="#78350F">server/proxy/ (freerdp-proxy binary)</text>
+  <line x1="530" y1="230" x2="870" y2="230" stroke="#D97706" stroke-width="0.5"/>
+  <text x="600" y="255" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400E">Server Side</text>
+  <text x="800" y="255" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400E">Client Side</text>
+  <line x1="700" y1="240" x2="700" y2="370" stroke="#D97706" stroke-width="0.5" stroke-dasharray="4"/>
+  <text x="600" y="275" text-anchor="middle" font-size="10" fill="#78350F">pf_server.c</text>
+  <text x="600" y="293" text-anchor="middle" font-size="10" fill="#78350F">Accepts connections</text>
+  <text x="600" y="311" text-anchor="middle" font-size="10" fill="#78350F">TLS termination</text>
+  <text x="600" y="329" text-anchor="middle" font-size="10" fill="#78350F">NLA/CredSSP handling</text>
+  <text x="600" y="347" text-anchor="middle" font-size="10" fill="#78350F">Certificate presentation</text>
+  <text x="800" y="275" text-anchor="middle" font-size="10" fill="#78350F">pf_client.c</text>
+  <text x="800" y="293" text-anchor="middle" font-size="10" fill="#78350F">Connects to target</text>
+  <text x="800" y="311" text-anchor="middle" font-size="10" fill="#78350F">TLS initiation</text>
+  <text x="800" y="329" text-anchor="middle" font-size="10" fill="#78350F">Credential injection</text>
+  <text x="800" y="347" text-anchor="middle" font-size="10" fill="#78350F">Session forwarding</text>
+  <rect x="610" y="355" width="180" height="20" rx="4" fill="#D97706"/>
+  <text x="700" y="369" text-anchor="middle" font-size="10" fill="white">Listen :23389 → Forward :3389</text>
+
+  <!-- Target Server Box -->
+  <rect x="1050" y="160" width="280" height="220" rx="10" fill="url(#serverGrad)" stroke="#059669" stroke-width="2"/>
+  <text x="1190" y="190" text-anchor="middle" font-size="16" font-weight="bold" fill="#065F46">Windows RDP Server</text>
+  <text x="1190" y="215" text-anchor="middle" font-size="12" fill="#064E3B">Target Machine (Real Desktop)</text>
+  <line x1="1080" y1="230" x2="1300" y2="230" stroke="#059669" stroke-width="0.5"/>
+  <text x="1190" y="252" text-anchor="middle" font-size="11" fill="#064E3B">Listens on port 3389</text>
+  <text x="1190" y="272" text-anchor="middle" font-size="11" fill="#064E3B">Authenticates proxy client</text>
+  <text x="1190" y="292" text-anchor="middle" font-size="11" fill="#064E3B">Sends graphics updates</text>
+  <text x="1190" y="312" text-anchor="middle" font-size="11" fill="#064E3B">Processes input events</text>
+  <text x="1190" y="332" text-anchor="middle" font-size="11" fill="#064E3B">Hosts virtual channels</text>
+  <rect x="1130" y="350" width="120" height="22" rx="4" fill="#059669"/>
+  <text x="1190" y="365" text-anchor="middle" font-size="11" fill="white">Port: 3389</text>
+
+  <!-- Arrows between boxes -->
+  <line x1="350" y1="260" x2="498" y2="260" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrowRight)"/>
+  <text x="424" y="253" text-anchor="middle" font-size="10" fill="#2563EB">RDP/TLS</text>
+  <line x1="498" y1="285" x2="350" y2="285" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+  <text x="424" y="302" text-anchor="middle" font-size="10" fill="#059669">Graphics</text>
+
+  <line x1="900" y1="260" x2="1048" y2="260" stroke="#D97706" stroke-width="2.5" marker-end="url(#arrowOrange)"/>
+  <text x="974" y="253" text-anchor="middle" font-size="10" fill="#D97706">RDP/TLS</text>
+  <line x1="1048" y1="285" x2="900" y2="285" stroke="#059669" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+  <text x="974" y="302" text-anchor="middle" font-size="10" fill="#059669">Graphics</text>
+
+  <!-- ======= SECTION 2: PROTOCOL STACK DETAIL ======= -->
+  <rect x="30" y="440" width="1340" height="500" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="700" y="470" text-anchor="middle" font-size="20" font-weight="bold" fill="#334155">2. Protocol Stack &amp; Two Independent RDP Sessions</text>
+
+  <!-- Left Session: Client ↔ Proxy Server-Side -->
+  <text x="340" y="500" text-anchor="middle" font-size="14" font-weight="bold" fill="#1E40AF">Session A: Client ↔ Proxy (Server-Side)</text>
+
+  <!-- Protocol layers - Session A -->
+  <rect x="100" y="520" width="480" height="36" rx="5" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="340" y="543" text-anchor="middle" font-size="12" font-weight="bold" fill="#1E40AF">Application: Input PDU ↔ Graphics/Update PDU ↔ Virtual Channels</text>
+
+  <rect x="100" y="562" width="480" height="36" rx="5" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="340" y="585" text-anchor="middle" font-size="12" fill="#1E3A5F">Capabilities Negotiation (Demand Active / Confirm Active)</text>
+
+  <rect x="100" y="604" width="480" height="36" rx="5" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="340" y="627" text-anchor="middle" font-size="12" fill="#1E3A5F">Licensing (license.c) → Valid Client</text>
+
+  <rect x="100" y="646" width="480" height="36" rx="5" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="340" y="669" text-anchor="middle" font-size="12" font-weight="bold" fill="#1E40AF">Security: NLA / CredSSP / TLS (nego.c, nla.c)</text>
+
+  <rect x="100" y="688" width="480" height="36" rx="5" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="340" y="711" text-anchor="middle" font-size="12" fill="#1E3A5F">MCS (T.125) + GCC (T.124) — mcs.c, gcc.c</text>
+
+  <rect x="100" y="730" width="480" height="36" rx="5" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="340" y="753" text-anchor="middle" font-size="12" fill="#1E3A5F">X.224 / TPDU (tpdu.c) + TPKT (tpkt.c, RFC 1006)</text>
+
+  <rect x="100" y="772" width="480" height="36" rx="5" fill="#BFDBFE" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="340" y="795" text-anchor="middle" font-size="12" font-weight="bold" fill="#1E40AF">TCP Socket — Proxy listens on :23389</text>
+
+  <!-- Right Session: Proxy Client-Side ↔ Target -->
+  <text x="1060" y="500" text-anchor="middle" font-size="14" font-weight="bold" fill="#065F46">Session B: Proxy (Client-Side) ↔ Target</text>
+
+  <rect x="820" y="520" width="480" height="36" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1060" y="543" text-anchor="middle" font-size="12" font-weight="bold" fill="#065F46">Application: Input PDU ↔ Graphics/Update PDU ↔ Virtual Channels</text>
+
+  <rect x="820" y="562" width="480" height="36" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1060" y="585" text-anchor="middle" font-size="12" fill="#064E3B">Capabilities Negotiation (Demand Active / Confirm Active)</text>
+
+  <rect x="820" y="604" width="480" height="36" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1060" y="627" text-anchor="middle" font-size="12" fill="#064E3B">Licensing (license.c) → Valid Client</text>
+
+  <rect x="820" y="646" width="480" height="36" rx="5" fill="#D1FAE5" stroke="#059669" stroke-width="1.5"/>
+  <text x="1060" y="669" text-anchor="middle" font-size="12" font-weight="bold" fill="#065F46">Security: NLA / CredSSP / TLS (credential injection here)</text>
+
+  <rect x="820" y="688" width="480" height="36" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1060" y="711" text-anchor="middle" font-size="12" fill="#064E3B">MCS (T.125) + GCC (T.124) — mcs.c, gcc.c</text>
+
+  <rect x="820" y="730" width="480" height="36" rx="5" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1060" y="753" text-anchor="middle" font-size="12" fill="#064E3B">X.224 / TPDU (tpdu.c) + TPKT (tpkt.c, RFC 1006)</text>
+
+  <rect x="820" y="772" width="480" height="36" rx="5" fill="#A7F3D0" stroke="#059669" stroke-width="1.5"/>
+  <text x="1060" y="795" text-anchor="middle" font-size="12" font-weight="bold" fill="#065F46">TCP Socket — Connects to target:3389</text>
+
+  <!-- Bridge arrows between sessions -->
+  <line x1="580" y1="538" x2="818" y2="538" stroke="#DC2626" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowRed)"/>
+  <line x1="818" y1="550" x2="580" y2="550" stroke="#DC2626" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrowRed)"/>
+
+  <rect x="640" y="822" width="120" height="50" rx="8" fill="#FEE2E2" stroke="#DC2626" stroke-width="2"/>
+  <text x="700" y="843" text-anchor="middle" font-size="11" font-weight="bold" fill="#DC2626">PDU Relay</text>
+  <text x="700" y="860" text-anchor="middle" font-size="10" fill="#991B1B">pf_update.c</text>
+
+  <line x1="580" y1="538" x2="640" y2="847" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4"/>
+  <line x1="760" y1="847" x2="818" y2="538" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4"/>
+
+  <text x="700" y="910" text-anchor="middle" font-size="11" fill="#DC2626" font-weight="bold">Two SEPARATE TLS sessions — proxy terminates and re-initiates</text>
+
+  <!-- ======= SECTION 3: CONNECTION SEQUENCE FLOW ======= -->
+  <rect x="30" y="960" width="1340" height="780" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="700" y="990" text-anchor="middle" font-size="20" font-weight="bold" fill="#334155">3. Connection Sequence — Detailed MITM Flow</text>
+
+  <!-- Column headers -->
+  <rect x="100" y="1010" width="200" height="30" rx="5" fill="#3B82F6"/>
+  <text x="200" y="1030" text-anchor="middle" font-size="13" font-weight="bold" fill="white">MSTSC Client</text>
+
+  <rect x="600" y="1010" width="200" height="30" rx="5" fill="#D97706"/>
+  <text x="700" y="1030" text-anchor="middle" font-size="13" font-weight="bold" fill="white">MITM Proxy</text>
+
+  <rect x="1100" y="1010" width="200" height="30" rx="5" fill="#059669"/>
+  <text x="1200" y="1030" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Target Server :3389</text>
+
+  <!-- Vertical timeline lines -->
+  <line x1="200" y1="1045" x2="200" y2="1710" stroke="#3B82F6" stroke-width="2" stroke-dasharray="4"/>
+  <line x1="700" y1="1045" x2="700" y2="1710" stroke="#D97706" stroke-width="2" stroke-dasharray="4"/>
+  <line x1="1200" y1="1045" x2="1200" y2="1710" stroke="#059669" stroke-width="2" stroke-dasharray="4"/>
+
+  <!-- Phase 1: Connection Initiation -->
+  <rect x="50" y="1055" width="10" height="100" rx="3" fill="#DBEAFE"/>
+  <text x="75" y="1075" font-size="10" font-weight="bold" fill="#1E40AF" transform="rotate(90, 75, 1075)">PHASE 1</text>
+
+  <line x1="202" y1="1065" x2="698" y2="1065" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1060" text-anchor="middle" font-size="10" fill="#1E3A5F">X.224 Connection Request (nego.c)</text>
+
+  <rect x="620" y="1075" width="160" height="22" rx="4" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="700" y="1090" text-anchor="middle" font-size="9" fill="#92400E">pf_server: accept on :23389</text>
+
+  <line x1="698" y1="1105" x2="202" y2="1105" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1100" text-anchor="middle" font-size="10" fill="#1E3A5F">X.224 Connection Confirm</text>
+
+  <!-- Phase 2: TLS/NLA with Client -->
+  <rect x="50" y="1120" width="10" height="100" rx="3" fill="#FEF3C7"/>
+  <text x="75" y="1140" font-size="10" font-weight="bold" fill="#92400E" transform="rotate(90, 75, 1140)">PHASE 2</text>
+
+  <line x1="202" y1="1135" x2="698" y2="1135" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1130" text-anchor="middle" font-size="10" fill="#1E3A5F">TLS Handshake (proxy presents self-signed cert)</text>
+
+  <line x1="202" y1="1160" x2="698" y2="1160" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1155" text-anchor="middle" font-size="10" fill="#1E3A5F">NLA/CredSSP: Client sends credentials (nla.c)</text>
+
+  <rect x="620" y="1170" width="160" height="35" rx="4" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.5"/>
+  <text x="700" y="1183" text-anchor="middle" font-size="9" font-weight="bold" fill="#DC2626">INTERCEPT POINT</text>
+  <text x="700" y="1197" text-anchor="middle" font-size="9" fill="#991B1B">Extract/capture credentials</text>
+
+  <!-- Phase 3: Proxy connects to target -->
+  <rect x="50" y="1220" width="10" height="110" rx="3" fill="#D1FAE5"/>
+  <text x="75" y="1245" font-size="10" font-weight="bold" fill="#065F46" transform="rotate(90, 75, 1245)">PHASE 3</text>
+
+  <rect x="620" y="1215" width="160" height="22" rx="4" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="700" y="1230" text-anchor="middle" font-size="9" fill="#92400E">pf_client: spawn client thread</text>
+
+  <line x1="702" y1="1250" x2="1198" y2="1250" stroke="#D97706" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="950" y="1245" text-anchor="middle" font-size="10" fill="#78350F">X.224 Connection Request</text>
+
+  <line x1="1198" y1="1270" x2="702" y2="1270" stroke="#059669" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="950" y="1265" text-anchor="middle" font-size="10" fill="#064E3B">X.224 Connection Confirm</text>
+
+  <line x1="702" y1="1290" x2="1198" y2="1290" stroke="#D97706" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="950" y="1285" text-anchor="middle" font-size="10" fill="#78350F">TLS + NLA/CredSSP (inject credentials)</text>
+
+  <rect x="620" y="1295" width="160" height="35" rx="4" fill="#FEE2E2" stroke="#DC2626" stroke-width="1.5"/>
+  <text x="700" y="1308" text-anchor="middle" font-size="9" font-weight="bold" fill="#DC2626">CREDENTIAL INJECTION</text>
+  <text x="700" y="1322" text-anchor="middle" font-size="9" fill="#991B1B">TargetUser/TargetPassword</text>
+
+  <!-- Phase 4: MCS/GCC Exchange -->
+  <rect x="50" y="1340" width="10" height="100" rx="3" fill="#E0E7FF"/>
+  <text x="75" y="1360" font-size="10" font-weight="bold" fill="#3730A3" transform="rotate(90, 75, 1360)">PHASE 4</text>
+
+  <line x1="202" y1="1350" x2="698" y2="1350" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1345" text-anchor="middle" font-size="10" fill="#1E3A5F">MCS Connect Initial + GCC (mcs.c, gcc.c)</text>
+
+  <line x1="702" y1="1370" x2="1198" y2="1370" stroke="#D97706" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="950" y="1365" text-anchor="middle" font-size="10" fill="#78350F">MCS Connect Initial + GCC (forwarded)</text>
+
+  <line x1="1198" y1="1390" x2="702" y2="1390" stroke="#059669" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="950" y="1385" text-anchor="middle" font-size="10" fill="#064E3B">MCS Connect Response + GCC</text>
+
+  <line x1="698" y1="1410" x2="202" y2="1410" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1405" text-anchor="middle" font-size="10" fill="#1E3A5F">MCS Connect Response + GCC</text>
+
+  <text x="700" y="1437" text-anchor="middle" font-size="10" fill="#64748B">... MCS Erect Domain, Attach User, Channel Join (all relayed) ...</text>
+
+  <!-- Phase 5: Session Active -->
+  <rect x="50" y="1450" width="10" height="110" rx="3" fill="#FCE7F3"/>
+  <text x="75" y="1475" font-size="10" font-weight="bold" fill="#9D174D" transform="rotate(90, 75, 1475)">PHASE 5</text>
+
+  <line x1="1198" y1="1465" x2="702" y2="1465" stroke="#059669" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="950" y="1460" text-anchor="middle" font-size="10" fill="#064E3B">License PDU → Demand Active</text>
+
+  <line x1="698" y1="1485" x2="202" y2="1485" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1480" text-anchor="middle" font-size="10" fill="#1E3A5F">Demand Active PDU (capabilities)</text>
+
+  <line x1="202" y1="1505" x2="698" y2="1505" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1500" text-anchor="middle" font-size="10" fill="#1E3A5F">Confirm Active PDU</text>
+
+  <line x1="702" y1="1525" x2="1198" y2="1525" stroke="#D97706" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="950" y="1520" text-anchor="middle" font-size="10" fill="#78350F">Confirm Active PDU (forwarded)</text>
+
+  <text x="700" y="1550" text-anchor="middle" font-size="10" fill="#64748B">... Synchronize, Control Cooperate, Font List (both directions) ...</text>
+
+  <!-- Phase 6: Active Session Data Relay -->
+  <rect x="50" y="1565" width="10" height="140" rx="3" fill="#F3E8FF"/>
+  <text x="75" y="1600" font-size="10" font-weight="bold" fill="#6B21A8" transform="rotate(90, 75, 1600)">PHASE 6: ACTIVE</text>
+
+  <line x1="202" y1="1585" x2="698" y2="1585" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1580" text-anchor="middle" font-size="10" fill="#1E3A5F">Input PDUs (keyboard, mouse) — pf_input.c</text>
+
+  <line x1="702" y1="1585" x2="1198" y2="1585" stroke="#D97706" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+  <text x="950" y="1597" text-anchor="middle" font-size="10" fill="#78350F">→ Forwarded to target</text>
+
+  <line x1="1198" y1="1630" x2="702" y2="1630" stroke="#059669" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+  <text x="950" y="1625" text-anchor="middle" font-size="10" fill="#064E3B">Graphics/Bitmap Updates — pf_update.c</text>
+
+  <line x1="698" y1="1630" x2="202" y2="1630" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="450" y="1642" text-anchor="middle" font-size="10" fill="#1E3A5F">← Forwarded to client</text>
+
+  <line x1="202" y1="1670" x2="698" y2="1670" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowRight)"/>
+  <line x1="702" y1="1670" x2="1198" y2="1670" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="4" marker-end="url(#arrowRight)"/>
+  <text x="700" y="1695" text-anchor="middle" font-size="10" fill="#7C3AED">Virtual Channels (clipboard, audio, drive, etc.) — pf_channel.c</text>
+
+  <!-- ======= SECTION 4: INTERNAL PROXY COMPONENT MAP ======= -->
+  <rect x="30" y="1760" width="1340" height="600" rx="10" fill="white" stroke="#CBD5E1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="700" y="1795" text-anchor="middle" font-size="20" font-weight="bold" fill="#334155">4. Internal Proxy Component Map (server/proxy/)</text>
+
+  <!-- Central proxyData box -->
+  <rect x="520" y="1820" width="360" height="110" rx="10" fill="#FEF3C7" stroke="#D97706" stroke-width="2" filter="url(#shadow)"/>
+  <text x="700" y="1845" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400E">proxyData (pf_context.c)</text>
+  <line x1="540" y1="1855" x2="860" y2="1855" stroke="#D97706" stroke-width="0.5"/>
+  <text x="700" y="1875" text-anchor="middle" font-size="11" fill="#78350F">pServerContext* ps  — server side context</text>
+  <text x="700" y="1893" text-anchor="middle" font-size="11" fill="#78350F">pClientContext* pc  — client side context</text>
+  <text x="700" y="1911" text-anchor="middle" font-size="11" fill="#78350F">proxyConfig* config — INI configuration</text>
+
+  <!-- Server side component -->
+  <rect x="80" y="1830" width="260" height="90" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="210" y="1855" text-anchor="middle" font-size="13" font-weight="bold" fill="#1E40AF">pf_server.c</text>
+  <text x="210" y="1875" text-anchor="middle" font-size="10" fill="#1E3A5F">freerdp_peer callbacks</text>
+  <text x="210" y="1892" text-anchor="middle" font-size="10" fill="#1E3A5F">PostConnect / Activate / Logon</text>
+  <text x="210" y="1908" text-anchor="middle" font-size="10" fill="#1E3A5F">ReceiveChannelData hook</text>
+  <line x1="340" y1="1870" x2="518" y2="1870" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <!-- Client side component -->
+  <rect x="1060" y="1830" width="260" height="90" rx="8" fill="#D1FAE5" stroke="#059669" stroke-width="1.5"/>
+  <text x="1190" y="1855" text-anchor="middle" font-size="13" font-weight="bold" fill="#065F46">pf_client.c</text>
+  <text x="1190" y="1875" text-anchor="middle" font-size="10" fill="#064E3B">freerdp_connect() to target</text>
+  <text x="1190" y="1892" text-anchor="middle" font-size="10" fill="#064E3B">OnActivated / ErrorInfo</text>
+  <text x="1190" y="1908" text-anchor="middle" font-size="10" fill="#064E3B">ReceiveChannelData hook</text>
+  <line x1="880" y1="1870" x2="1058" y2="1870" stroke="#059669" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Sub-components row -->
+  <rect x="80" y="1960" width="180" height="70" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1"/>
+  <text x="170" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#1E40AF">pf_input.c</text>
+  <text x="170" y="2002" text-anchor="middle" font-size="10" fill="#1E3A5F">Keyboard relay</text>
+  <text x="170" y="2017" text-anchor="middle" font-size="10" fill="#1E3A5F">Mouse relay</text>
+
+  <rect x="290" y="1960" width="180" height="70" rx="6" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="380" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#92400E">pf_update.c</text>
+  <text x="380" y="2002" text-anchor="middle" font-size="10" fill="#78350F">BeginPaint / EndPaint</text>
+  <text x="380" y="2017" text-anchor="middle" font-size="10" fill="#78350F">BitmapUpdate relay</text>
+
+  <rect x="500" y="1960" width="180" height="70" rx="6" fill="#F3E8FF" stroke="#7C3AED" stroke-width="1"/>
+  <text x="590" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#6B21A8">pf_channel.c</text>
+  <text x="590" y="2002" text-anchor="middle" font-size="10" fill="#581C87">Static channel routing</text>
+  <text x="590" y="2017" text-anchor="middle" font-size="10" fill="#581C87">Dynamic VC (drdynvc)</text>
+
+  <rect x="710" y="1960" width="180" height="70" rx="6" fill="#FCE7F3" stroke="#DB2777" stroke-width="1"/>
+  <text x="800" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#9D174D">pf_config.c</text>
+  <text x="800" y="2002" text-anchor="middle" font-size="10" fill="#831843">INI file parsing</text>
+  <text x="800" y="2017" text-anchor="middle" font-size="10" fill="#831843">Target/channel settings</text>
+
+  <rect x="920" y="1960" width="180" height="70" rx="6" fill="#FEE2E2" stroke="#DC2626" stroke-width="1"/>
+  <text x="1010" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#991B1B">proxy_modules.c</text>
+  <text x="1010" y="2002" text-anchor="middle" font-size="10" fill="#7F1D1D">Plugin hooks/filters</text>
+  <text x="1010" y="2017" text-anchor="middle" font-size="10" fill="#7F1D1D">Custom extensions</text>
+
+  <rect x="1130" y="1960" width="180" height="70" rx="6" fill="#ECFDF5" stroke="#059669" stroke-width="1"/>
+  <text x="1220" y="1985" text-anchor="middle" font-size="12" font-weight="bold" fill="#065F46">channels/</text>
+  <text x="1220" y="2002" text-anchor="middle" font-size="10" fill="#064E3B">pf_channel_rdpdr.c</text>
+  <text x="1220" y="2017" text-anchor="middle" font-size="10" fill="#064E3B">pf_channel_smartcard.c</text>
+
+  <!-- Connection lines from proxyData to sub-components -->
+  <line x1="700" y1="1930" x2="170" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="700" y1="1930" x2="380" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="700" y1="1930" x2="590" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="700" y1="1930" x2="800" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="700" y1="1930" x2="1010" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="700" y1="1930" x2="1220" y2="1958" stroke="#94A3B8" stroke-width="1" stroke-dasharray="3"/>
+
+  <!-- Legend for certificate/credential flow -->
+  <rect x="80" y="2070" width="1240" height="130" rx="8" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1"/>
+  <text x="700" y="2095" text-anchor="middle" font-size="14" font-weight="bold" fill="#92400E">Key MITM Operations</text>
+
+  <circle cx="130" cy="2125" r="8" fill="#DC2626"/>
+  <text x="150" y="2129" font-size="11" fill="#1E293B" font-weight="bold">Certificate Handling:</text>
+  <text x="150" y="2146" font-size="10" fill="#475569">Proxy presents its own TLS cert to client (CertificateFile in config). Client sees proxy cert, not target cert.</text>
+  <text x="150" y="2161" font-size="10" fill="#475569">Proxy independently validates target cert on the backend connection. Two separate TLS tunnels.</text>
+
+  <circle cx="730" cy="2125" r="8" fill="#7C3AED"/>
+  <text x="750" y="2129" font-size="11" fill="#1E293B" font-weight="bold">Credential Injection:</text>
+  <text x="750" y="2146" font-size="10" fill="#475569">TargetUser/TargetPassword in config → injected into pf_client NLA/CredSSP towards target.</text>
+  <text x="750" y="2161" font-size="10" fill="#475569">Client credentials captured in pf_server_logon() via SEC_WINNT_AUTH_IDENTITY.</text>
+
+  <!-- Footer note -->
+  <rect x="80" y="2210" width="1240" height="140" rx="8" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1"/>
+  <text x="700" y="2235" text-anchor="middle" font-size="14" font-weight="bold" fill="#334155">libfreerdp/core/ Protocol Stack Files</text>
+  <text x="120" y="2260" font-size="10" fill="#475569">connection.c — Full MS-RDPBCGR connection sequence state machine</text>
+  <text x="120" y="2278" font-size="10" fill="#475569">nego.c — Protocol negotiation (RDP/TLS/NLA/CredSSP/RDSTLS/AAD)</text>
+  <text x="120" y="2296" font-size="10" fill="#475569">nla.c — Network Level Authentication (NTLM/Kerberos/SPNEGO via SSPI)</text>
+  <text x="120" y="2314" font-size="10" fill="#475569">mcs.c — T.125 MCS layer (Connect, Domain, User, Channel operations)</text>
+  <text x="120" y="2332" font-size="10" fill="#475569">gcc.c — T.124 GCC (Core/Security/Network data blocks)</text>
+  <text x="700" y="2260" font-size="10" fill="#475569">tpdu.c / tpkt.c — X.224 + RFC 1006 transport framing</text>
+  <text x="700" y="2278" font-size="10" fill="#475569">rdp.c — Core RDP state machine and PDU dispatch</text>
+  <text x="700" y="2296" font-size="10" fill="#475569">peer.c — Server-side freerdp_peer implementation</text>
+  <text x="700" y="2314" font-size="10" fill="#475569">security.c — RC4/FIPS key derivation, encryption</text>
+  <text x="700" y="2332" font-size="10" fill="#475569">license.c / activation.c / capabilities.c — Session establishment</text>
+</svg>
