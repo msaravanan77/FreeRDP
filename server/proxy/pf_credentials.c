@@ -253,7 +253,9 @@ wHashTable* pf_credentials_load_mapping(const char* filepath)
 		return NULL;
 	}
 
-	map->valueFree = credential_entry_free_fn;
+	wObject* obj = HashTable_ValueObject(map);
+	if (obj)
+		obj->fnObjectFree = credential_entry_free_fn;
 
 	/* Find "credentials" section */
 	credentials_section = strstr(file_contents, "\"credentials\"");

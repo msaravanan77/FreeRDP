@@ -1432,6 +1432,14 @@ const char* freerdp_nego_get_routing_token(const rdpContext* context, DWORD* len
 	return (const char*)nego_get_routing_token(context->rdp->nego, length);
 }
 
+const char* freerdp_nego_get_cookie(const rdpContext* context)
+{
+	if (!context || !context->rdp)
+		return NULL;
+
+	return nego_get_cookie(context->rdp->nego);
+}
+
 BOOL freerdp_io_callback_set_event(rdpContext* context, BOOL set)
 {
 	WINPR_ASSERT(context);

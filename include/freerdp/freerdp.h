@@ -788,6 +788,7 @@ owned by rdpRdp */
 
 	FREERDP_API const char* freerdp_nego_get_routing_token(const rdpContext* context,
 	                                                       DWORD* length);
+	FREERDP_API const char* freerdp_nego_get_cookie(const rdpContext* context);
 
 	/** \brief returns the current \b CONNECTION_STATE of the context.
 	 *

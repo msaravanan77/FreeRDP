@@ -2080,6 +2080,13 @@ const BYTE* nego_get_routing_token(const rdpNego* nego, DWORD* RoutingTokenLengt
 	return nego->RoutingToken;
 }
 
+const char* nego_get_cookie(const rdpNego* nego)
+{
+	if (!nego)
+		return NULL;
+	return nego->cookie;
+}
+
 const char* nego_protocol_to_str(UINT32 protocol, char* buffer, size_t size)
 {
 	const UINT32 mask = ~(PROTOCOL_SSL | PROTOCOL_HYBRID | PROTOCOL_RDSTLS | PROTOCOL_HYBRID_EX |

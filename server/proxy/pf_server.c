@@ -110,40 +110,59 @@ static BOOL pf_server_parse_target_from_routing_token(rdpContext* context, rdpSe
 }
 
 /**
- * Extract mstshash value from routing token
- * Expected format: "Cookie: mstshash=hashvalue"
+ * Extract mstshash value from the negotiation cookie.
+ *
+ * In the RDP protocol, "Cookie: mstshash=value" is stored as a *cookie*
+ * (not a routing token) by the negotiation layer. The routing token API
+ * only returns "Cookie: msts=..." style tokens. We therefore use the
+ * cookie API to retrieve the mstshash value.
+ *
+ * Expected cookie format: "Cookie: mstshash=hashvalue"
  * Returns: Allocated string with hash value (caller must free), or NULL if not found
  */
-static char* pf_server_parse_mstshash_from_routing_token(rdpContext* context)
+static char* pf_server_extract_mstshash(rdpContext* context)
 {
 #define MSTSHASH_PREFIX "Cookie: mstshash="
-	DWORD routing_token_length = 0;
-	const char* routing_token = NULL;
-	const size_t prefix_len = strnlen(MSTSHASH_PREFIX, sizeof(MSTSHASH_PREFIX));
 	pServerContext* ps = (pServerContext*)context;
+	const size_t prefix_len = strnlen(MSTSHASH_PREFIX, sizeof(MSTSHASH_PREFIX));
 
-	routing_token = freerdp_nego_get_routing_token(context, &routing_token_length);
+	/* mstshash cookies are stored via nego_set_cookie(), not nego_set_routing_token().
+	 * Use the cookie API to retrieve them. */
+	const char* cookie = freerdp_nego_get_cookie(context);
 
-	if (!routing_token || routing_token_length <= prefix_len)
+	PROXY_LOG_INFO(TAG, ps, "Nego cookie: %s", cookie ? cookie : "NULL");
+
+	if (!cookie)
+	{
+		PROXY_LOG_INFO(TAG, ps, "No negotiation cookie available");
 		return NULL;
+	}
 
 	/* Check if it starts with "Cookie: mstshash=" */
-	if (strncmp(routing_token, MSTSHASH_PREFIX, prefix_len) != 0)
+	if (strncmp(cookie, MSTSHASH_PREFIX, prefix_len) != 0)
+	{
+		PROXY_LOG_INFO(TAG, ps, "Cookie does not contain mstshash prefix: %s", cookie);
 		return NULL;
+	}
 
 	/* Extract hash value (everything after prefix) */
-	const size_t hash_len = routing_token_length - prefix_len;
-	char* mstshash = calloc(hash_len + 1, sizeof(char));
+	const char* hash_value = cookie + prefix_len;
+	const size_t hash_len = strlen(hash_value);
+
+	if (hash_len == 0)
+	{
+		PROXY_LOG_WARN(TAG, ps, "Empty mstshash value in cookie");
+		return NULL;
+	}
+
+	char* mstshash = _strdup(hash_value);
 	if (!mstshash)
 	{
 		PROXY_LOG_ERR(TAG, ps, "Failed to allocate memory for mstshash");
 		return NULL;
 	}
 
-	memcpy(mstshash, routing_token + prefix_len, hash_len);
-	mstshash[hash_len] = '\0';
-
-	PROXY_LOG_INFO(TAG, ps, "Extracted mstshash from routing token: %s", mstshash);
+	PROXY_LOG_INFO(TAG, ps, "Extracted mstshash: %s", mstshash);
 	return mstshash;
 #undef MSTSHASH_PREFIX
 }
@@ -170,8 +189,8 @@ static BOOL pf_server_get_target_info(rdpContext* context, rdpSettings* settings
 		case PROXY_FETCH_TARGET_METHOD_DEFAULT:
 		case PROXY_FETCH_TARGET_METHOD_LOAD_BALANCE_INFO:
 		{
-			/* Try to extract mstshash first */
-			char* mstshash = pf_server_parse_mstshash_from_routing_token(context);
+				/* Try to extract mstshash first */
+			char* mstshash = pf_server_extract_mstshash(context);
 
 			if (mstshash && config->credentialMap)
 			{
@@ -244,14 +263,26 @@ static BOOL pf_server_get_target_info(rdpContext* context, rdpSettings* settings
 				else
 				{
 					PROXY_LOG_WARN(TAG, ps, "No mapping found for mstshash: %s", mstshash);
+					free(mstshash);
+					/* Fallback: try old "Cookie: msts=" format */
+					return pf_server_parse_target_from_routing_token(
+					    context, settings, FreeRDP_ServerHostname, FreeRDP_ServerPort);
 				}
 			}
-
-			free(mstshash);
-
-			/* Fallback: try old "Cookie: msts=" format */
-			return pf_server_parse_target_from_routing_token(
-			    context, settings, FreeRDP_ServerHostname, FreeRDP_ServerPort);
+			else if (mstshash)
+			{
+				PROXY_LOG_WARN(TAG, ps, "mstshash found but no credential map configured");
+				free(mstshash);
+				/* Fallback: try old "Cookie: msts=" format */
+				return pf_server_parse_target_from_routing_token(
+				    context, settings, FreeRDP_ServerHostname, FreeRDP_ServerPort);
+			}
+			else
+			{
+				/* Fallback: try old "Cookie: msts=" format */
+				return pf_server_parse_target_from_routing_token(
+				    context, settings, FreeRDP_ServerHostname, FreeRDP_ServerPort);
+			}
 		}
 
 		case PROXY_FETCH_TARGET_METHOD_CONFIG:

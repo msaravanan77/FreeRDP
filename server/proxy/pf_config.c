@@ -1022,6 +1022,12 @@ BOOL pf_config_clone(proxyConfig** dst, const proxyConfig* config)
 		goto fail;
 	if (!pf_config_copy_string(&tmp->TargetHost, config->TargetHost))
 		goto fail;
+	if (!pf_config_copy_string(&tmp->TargetUser, config->TargetUser))
+		goto fail;
+	if (!pf_config_copy_string(&tmp->TargetDomain, config->TargetDomain))
+		goto fail;
+	if (!pf_config_copy_string(&tmp->TargetPassword, config->TargetPassword))
+		goto fail;
 
 	if (!pf_config_copy_string_list(&tmp->Passthrough, &tmp->PassthroughCount, config->Passthrough,
 	                                config->PassthroughCount))
@@ -1053,6 +1059,14 @@ BOOL pf_config_clone(proxyConfig** dst, const proxyConfig* config)
 	tmp->ini = IniFile_Clone(config->ini);
 	if (!tmp->ini)
 		goto fail;
+
+	if (!pf_config_copy_string(&tmp->CredentialMappingFile, config->CredentialMappingFile))
+		goto fail;
+
+	/* Re-load credential mapping for the clone so it owns its own copy */
+	tmp->credentialMap = NULL;
+	if (tmp->CredentialMappingFile)
+		tmp->credentialMap = pf_credentials_load_mapping(tmp->CredentialMappingFile);
 
 	*dst = tmp;
 	return TRUE;
