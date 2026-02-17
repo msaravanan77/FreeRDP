@@ -54,6 +54,7 @@
 #include "pf_utils.h"
 #include "channels/pf_channel_drdynvc.h"
 #include "channels/pf_channel_rdpdr.h"
+#include "pf_credentials.h"
 
 #define TAG PROXY_TAG("server")
 
@@ -108,6 +109,45 @@ static BOOL pf_server_parse_target_from_routing_token(rdpContext* context, rdpSe
 	return TRUE;
 }
 
+/**
+ * Extract mstshash value from routing token
+ * Expected format: "Cookie: mstshash=hashvalue"
+ * Returns: Allocated string with hash value (caller must free), or NULL if not found
+ */
+static char* pf_server_parse_mstshash_from_routing_token(rdpContext* context)
+{
+#define MSTSHASH_PREFIX "Cookie: mstshash="
+	DWORD routing_token_length = 0;
+	const char* routing_token = NULL;
+	const size_t prefix_len = strnlen(MSTSHASH_PREFIX, sizeof(MSTSHASH_PREFIX));
+	pServerContext* ps = (pServerContext*)context;
+
+	routing_token = freerdp_nego_get_routing_token(context, &routing_token_length);
+
+	if (!routing_token || routing_token_length <= prefix_len)
+		return NULL;
+
+	/* Check if it starts with "Cookie: mstshash=" */
+	if (strncmp(routing_token, MSTSHASH_PREFIX, prefix_len) != 0)
+		return NULL;
+
+	/* Extract hash value (everything after prefix) */
+	const size_t hash_len = routing_token_length - prefix_len;
+	char* mstshash = calloc(hash_len + 1, sizeof(char));
+	if (!mstshash)
+	{
+		PROXY_LOG_ERR(TAG, ps, "Failed to allocate memory for mstshash");
+		return NULL;
+	}
+
+	memcpy(mstshash, routing_token + prefix_len, hash_len);
+	mstshash[hash_len] = '\0';
+
+	PROXY_LOG_INFO(TAG, ps, "Extracted mstshash from routing token: %s", mstshash);
+	return mstshash;
+#undef MSTSHASH_PREFIX
+}
+
 static BOOL pf_server_get_target_info(rdpContext* context, rdpSettings* settings,
                                       const proxyConfig* config)
 {
@@ -129,8 +169,90 @@ static BOOL pf_server_get_target_info(rdpContext* context, rdpSettings* settings
 	{
 		case PROXY_FETCH_TARGET_METHOD_DEFAULT:
 		case PROXY_FETCH_TARGET_METHOD_LOAD_BALANCE_INFO:
+		{
+			/* Try to extract mstshash first */
+			char* mstshash = pf_server_parse_mstshash_from_routing_token(context);
+
+			if (mstshash && config->credentialMap)
+			{
+				/* Lookup credentials + target from mapping */
+				CredentialEntry* cred =
+				    pf_credentials_lookup((wHashTable*)config->credentialMap, mstshash);
+
+				if (cred)
+				{
+					PROXY_LOG_INFO(TAG, ps, "Using mapped credentials for mstshash: %s (user: %s)",
+					               mstshash, cred->username);
+
+					/* Set target server */
+					if (!freerdp_settings_set_string(settings, FreeRDP_ServerHostname,
+					                                 cred->target_host))
+					{
+						PROXY_LOG_ERR(TAG, ps, "Failed to set target hostname");
+						free(mstshash);
+						return FALSE;
+					}
+
+					if (!freerdp_settings_set_uint32(settings, FreeRDP_ServerPort,
+					                                 cred->target_port))
+					{
+						PROXY_LOG_ERR(TAG, ps, "Failed to set target port");
+						free(mstshash);
+						return FALSE;
+					}
+
+					PROXY_LOG_INFO(TAG, ps, "Connecting to target: %s:%u", cred->target_host,
+					               cred->target_port);
+
+					/* Set credentials */
+					if (!freerdp_settings_set_string(settings, FreeRDP_Username, cred->username))
+					{
+						PROXY_LOG_ERR(TAG, ps, "Failed to set username");
+						free(mstshash);
+						return FALSE;
+					}
+
+					if (!freerdp_settings_set_string(settings, FreeRDP_Password, cred->password))
+					{
+						PROXY_LOG_ERR(TAG, ps, "Failed to set password");
+						free(mstshash);
+						return FALSE;
+					}
+
+					if (cred->domain && strlen(cred->domain) > 0)
+					{
+						if (!freerdp_settings_set_string(settings, FreeRDP_Domain, cred->domain))
+						{
+							PROXY_LOG_ERR(TAG, ps, "Failed to set domain");
+							free(mstshash);
+							return FALSE;
+						}
+					}
+
+					/* Set TLS security level */
+					if (!freerdp_settings_set_uint32(settings, FreeRDP_TlsSecLevel,
+					                                 config->TargetTlsSecLevel))
+					{
+						PROXY_LOG_ERR(TAG, ps, "Failed to set TLS security level");
+						free(mstshash);
+						return FALSE;
+					}
+
+					free(mstshash);
+					return TRUE;
+				}
+				else
+				{
+					PROXY_LOG_WARN(TAG, ps, "No mapping found for mstshash: %s", mstshash);
+				}
+			}
+
+			free(mstshash);
+
+			/* Fallback: try old "Cookie: msts=" format */
 			return pf_server_parse_target_from_routing_token(
 			    context, settings, FreeRDP_ServerHostname, FreeRDP_ServerPort);
+		}
 
 		case PROXY_FETCH_TARGET_METHOD_CONFIG:
 		{

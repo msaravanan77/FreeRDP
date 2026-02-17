@@ -45,6 +45,7 @@
 #include <freerdp/channels/rdpecam.h>
 
 #include "pf_utils.h"
+#include "pf_credentials.h"
 
 #define TAG PROXY_TAG("config")
 
@@ -112,6 +113,9 @@ static const char* key_private_key_file = "PrivateKeyFile";
 static const char* key_private_key_content = "PrivateKeyContent";
 static const char* key_cert_file = "CertificateFile";
 static const char* key_cert_content = "CertificateContent";
+
+static const char* section_credentials = "Credentials";
+static const char* key_credentials_mapping_file = "MappingFile";
 
 WINPR_ATTR_MALLOC(CommandLineParserFree, 1)
 WINPR_ATTR_NODISCARD
@@ -369,6 +373,32 @@ static BOOL pf_config_load_modules(wIniFile* ini, proxyConfig* config)
 	return TRUE;
 }
 
+static BOOL pf_config_load_credentials(wIniFile* ini, proxyConfig* config)
+{
+	const char* mapping_file = NULL;
+
+	WINPR_ASSERT(config);
+	mapping_file = pf_config_get_str(ini, section_credentials, key_credentials_mapping_file, FALSE);
+
+	if (mapping_file)
+	{
+		free(config->CredentialMappingFile);
+		config->CredentialMappingFile = _strdup(mapping_file);
+		if (!config->CredentialMappingFile)
+			return FALSE;
+
+		/* Load the credential mapping */
+		config->credentialMap = pf_credentials_load_mapping(mapping_file);
+		if (!config->credentialMap)
+		{
+			WLog_WARN(TAG, "Failed to load credential mapping from: %s", mapping_file);
+			/* Not a fatal error - proxy can still work without credential mapping */
+		}
+	}
+
+	return TRUE;
+}
+
 static char* pf_config_decode_base64(const char* data, const char* name, size_t* pLength)
 {
 	const char* headers[] = { "-----BEGIN PUBLIC KEY-----", "-----BEGIN RSA PUBLIC KEY-----",
@@ -581,6 +611,10 @@ proxyConfig* server_config_load_ini(wIniFile* ini)
 
 		if (!pf_config_load_certificates(ini, config))
 			goto out;
+
+		if (!pf_config_load_credentials(ini, config))
+			goto out;
+
 		config->ini = IniFile_Clone(ini);
 		if (!config->ini)
 			goto out;
@@ -882,6 +916,12 @@ void pf_server_config_free(proxyConfig* config)
 	free(config->PrivateKeyFile);
 	zfree(config->PrivateKeyContent);
 	znfree(config->PrivateKeyPEM, config->PrivateKeyPEMLength);
+
+	/* Free credential mapping */
+	if (config->credentialMap)
+		pf_credentials_free_mapping((wHashTable*)config->credentialMap);
+	free(config->CredentialMappingFile);
+
 	IniFile_Free(config->ini);
 	free(config);
 }

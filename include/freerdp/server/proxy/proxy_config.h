@@ -119,6 +119,10 @@ extern "C"
 
 		/* target continued */
 		UINT32 TargetTlsSecLevel; /** @since version 3.2.0 */
+
+		/* credential mapping */
+		char* CredentialMappingFile; /** @since version 3.10.0 Path to credential mapping file */
+		void* credentialMap;         /** @since version 3.10.0 Internal: parsed credential map */
 	};
 
 	/**

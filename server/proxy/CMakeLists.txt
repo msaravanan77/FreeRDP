@@ -39,6 +39,8 @@ set(${MODULE_PREFIX}_SRCS
     pf_modules.c
     pf_utils.h
     pf_utils.c
+    pf_credentials.c
+    pf_credentials.h
     $<TARGET_OBJECTS:pf_channels>
 )
 
