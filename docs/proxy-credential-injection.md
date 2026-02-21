@@ -467,8 +467,17 @@ client logon info: Username: guest123,             ← Logged into Windows
 | `libfreerdp/core/nego.c` | +7 | `nego_get_cookie()` implementation |
 | `include/freerdp/server/proxy/proxy_config.h` | +4 | `CredentialMappingFile` and `credentialMap` fields |
 | `server/proxy/pf_config.c` | +54 | `[Credentials]` INI parsing, `pf_config_clone` fixes |
-| `server/proxy/pf_server.c` | +99 | `pf_server_extract_mstshash()`, credential injection in `pf_server_get_target_info()` |
+| `server/proxy/pf_server.c` | +99 | `pf_server_extract_mstshash()`, credential injection in `pf_server_get_target_info()`, mstshash CRLF trimming |
 | `server/proxy/CMakeLists.txt` | +2 | Added `pf_credentials.c/h` to build |
+
+### Supporting Files (repo root)
+
+| File | Purpose |
+|------|---------|
+| `start-proxy.sh` | Wrapper script: sets `LD_LIBRARY_PATH` and starts the proxy |
+| `tmp-files/proxy.ini` | Example proxy configuration (copy to working directory) |
+| `tmp-files/credentials.json` | Example credential mapping (copy and fill in real values) |
+| `tmp-files/.gitignore` | Prevents TLS cert/key from being committed |
 
 ---
 
@@ -515,6 +524,20 @@ and updated `pf_server_extract_mstshash()` to use it instead of
   original and clone. Fixed by re-loading the credential mapping for the clone.
 - **`pf_credentials.c` API misuse:** Direct access to `wHashTable->valueFree` replaced
   with proper `HashTable_ValueObject()` API.
+- **mstshash trailing CRLF not stripped:** `pf_server_extract_mstshash()` returned
+  the raw value including trailing `\r\n` bytes (or the literal characters `\r\n`
+  sent by some clients), causing a lookup miss in the credential map. Fixed by
+  trimming trailing CR, LF, and whitespace (including literal `\r`/`\n` characters)
+  from the extracted hash value before the lookup.
+
+  Root cause: the X.224 CR PDU carries the cookie line terminated by an actual CRLF
+  (`0x0D 0x0A`). The nego parsing layer null-terminates before the real CRLF, but
+  some test clients (e.g. `xfreerdp /load-balance-info:"Cookie: mstshash=hash1\r\n"`)
+  embed literal backslash-r-backslash-n characters before the real CRLF, leaving
+  them in the stored cookie value. The fix strips both variants.
+
+  Pcap-verified: `selectedProtocol = 0x00000001` (TLS) in the X.224 CC PDU confirms
+  the client↔proxy leg uses TLS-only as intended, with NLA only on the proxy↔target leg.
 
 ---
 

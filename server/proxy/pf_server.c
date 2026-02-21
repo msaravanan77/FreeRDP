@@ -162,6 +162,43 @@ static char* pf_server_extract_mstshash(rdpContext* context)
 		return NULL;
 	}
 
+	/* Strip trailing whitespace and CRLF variants:
+	 * - Actual CR (0x0D) and LF (0x0A) appended by the RDP protocol layer
+	 * - Literal '\r\n' characters (backslash-r, backslash-n) passed by
+	 *   test clients via /load-balance-info without proper CRLF encoding */
+	size_t mlen = strlen(mstshash);
+	while (mlen > 0)
+	{
+		char c = mstshash[mlen - 1];
+		if (c == '\r' || c == '\n' || c == ' ' || c == '\t')
+		{
+			mstshash[--mlen] = '\0';
+		}
+		else if (mlen >= 2 && c == 'n' && mstshash[mlen - 2] == '\\')
+		{
+			/* strip literal \n */
+			mstshash[--mlen] = '\0';
+			mstshash[--mlen] = '\0';
+		}
+		else if (mlen >= 2 && c == 'r' && mstshash[mlen - 2] == '\\')
+		{
+			/* strip literal \r */
+			mstshash[--mlen] = '\0';
+			mstshash[--mlen] = '\0';
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (mlen == 0)
+	{
+		PROXY_LOG_WARN(TAG, ps, "mstshash is empty after trimming");
+		free(mstshash);
+		return NULL;
+	}
+
 	PROXY_LOG_INFO(TAG, ps, "Extracted mstshash: %s", mstshash);
 	return mstshash;
 #undef MSTSHASH_PREFIX
